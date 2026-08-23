@@ -1,0 +1,13 @@
+.git
+.reference
+.venv
+default
+deploy/profile
+deploy/napcat
+deploy/ntqq
+deploy/.env
+work
+tests
+**/__pycache__
+**/*.pyc
+

@@ -1,0 +1,10 @@
+NapCat:
+  endpoint: ws://napcat:3001
+  access_token: replace-with-a-long-random-token
+  api_timeout: 60
+  connect_timeout: 20
+  reconnect_delay: 5
+  max_media_bytes: 52428800
+  download_timeout: 60
+  send_timeout: 180
+  qrcode_path: /napcat-cache/qrcode.png

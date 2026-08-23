@@ -1,0 +1,26 @@
+.reference/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.coverage
+dist/
+build/
+*.egg-info/
+
+# Runtime profiles contain Telegram tokens, QQ credentials and chat history.
+default/
+deploy/profile/
+deploy/napcat/
+deploy/ntqq/
+deploy/.env
+deploy/*.key
+deploy/*.pem
+work/
+
+# Local databases and runtime logs must never be published.
+*.db
+*.sqlite
+*.sqlite3
+*.log

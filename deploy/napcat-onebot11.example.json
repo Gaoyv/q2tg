@@ -1,0 +1,33 @@
+{
+  "network": {
+    "httpServers": [],
+    "httpSseServers": [],
+    "httpClients": [],
+    "websocketServers": [
+      {
+        "enable": true,
+        "name": "efb",
+        "host": "0.0.0.0",
+        "port": 3001,
+        "reportSelfMessage": false,
+        "enableForcePushEvent": true,
+        "messagePostFormat": "array",
+        "token": "replace-with-the-same-token-as-the-efb-profile",
+        "debug": false,
+        "heartInterval": 30000
+      }
+    ],
+    "websocketClients": [],
+    "plugins": []
+  },
+  "musicSignUrl": "",
+  "enableLocalFile2Url": true,
+  "parseMultMsg": true,
+  "imageDownloadProxy": "",
+  "timeout": {
+    "baseTimeout": 60000,
+    "uploadSpeedKBps": 128,
+    "downloadSpeedKBps": 256,
+    "maxTimeout": 1800000
+  }
+}

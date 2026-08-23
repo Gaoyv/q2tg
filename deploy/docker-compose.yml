@@ -1,0 +1,49 @@
+services:
+  napcat:
+    image: mlikiowa/napcat-docker:latest
+    container_name: q2tg-napcat
+    restart: unless-stopped
+    environment:
+      NAPCAT_UID: "${NAPCAT_UID:-1000}"
+      NAPCAT_GID: "${NAPCAT_GID:-1000}"
+    volumes:
+      - ./napcat/config:/app/napcat/config
+      - ./ntqq:/app/.config/QQ
+      - napcat-cache:/app/napcat/cache
+    # WebUI is reachable only through an SSH tunnel to the VPS loopback.
+    ports:
+      - "127.0.0.1:6099:6099"
+    networks:
+      - q2tg
+    healthcheck:
+      test: ["CMD-SHELL", "/usr/bin/bash -c 'exec 3<>/dev/tcp/127.0.0.1/6099'"]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+
+  efb:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: q2tg-efb
+    restart: unless-stopped
+    depends_on:
+      napcat:
+        condition: service_healthy
+    volumes:
+      - ./profile:/home/efb/.ehforwarderbot/profiles/default
+      - napcat-cache:/napcat-cache:ro
+    networks:
+      - q2tg
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  q2tg:
+    driver: bridge
+
+volumes:
+  napcat-cache:
