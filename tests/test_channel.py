@@ -34,11 +34,46 @@ def test_text_reply_uses_native_onebot_segments() -> None:
     chat = GroupChat(channel=channel, uid="group_456", name="group")
     member = chat.add_member(uid="123", name="Alice")
     target = Message(chat=chat, author=member, uid="456_789", type=MsgType.Text, text="old")
-    outbound = Message(chat=chat, author=chat.self, type=MsgType.Text, text="new", target=target)
+    sender = chat.add_member(uid="999", name="Bob")
+    outbound = Message(chat=chat, author=sender, type=MsgType.Text, text="new", target=target)
     assert channel._build_outbound_segments(outbound, "group") == [
         {"type": "reply", "data": {"id": "789"}},
         {"type": "at", "data": {"qq": "123"}},
-        {"type": "text", "data": {"text": "new"}},
+        {"type": "text", "data": {"text": "[TG][Bob]：new"}},
+    ]
+
+
+def test_text_reply_does_not_at_telegram_sender_as_qq_user() -> None:
+    channel = make_channel()
+    chat = GroupChat(channel=channel, uid="group_456", name="group")
+    target_author = chat.add_member(uid="telegram_999", name="Bob")
+    target = Message(chat=chat, author=target_author, uid="456_789", type=MsgType.Text, text="old")
+    sender = chat.add_member(uid="telegram_888", name="Carol")
+    outbound = Message(chat=chat, author=sender, type=MsgType.Text, text="new", target=target)
+
+    assert channel._build_outbound_segments(outbound, "group") == [
+        {"type": "reply", "data": {"id": "789"}},
+        {"type": "text", "data": {"text": "[TG][Carol]：new"}},
+    ]
+
+
+def test_text_reply_with_telegram_target_falls_back_to_quote_text() -> None:
+    channel = make_channel()
+    chat = GroupChat(channel=channel, uid="group_456", name="group")
+    target_author = chat.add_member(uid="telegram_999", name="Bob")
+    target = Message(
+        chat=chat,
+        author=target_author,
+        uid="-1002247536711.1310",
+        type=MsgType.Text,
+        text="old message",
+    )
+    sender = chat.add_member(uid="telegram_888", name="Carol")
+    outbound = Message(chat=chat, author=sender, type=MsgType.Text, text="new", target=target)
+
+    assert channel._build_outbound_segments(outbound, "group") == [
+        {"type": "text", "data": {"text": "[回复] old message\n"}},
+        {"type": "text", "data": {"text": "[TG][Carol]：new"}},
     ]
 
 
@@ -56,7 +91,7 @@ def test_media_is_base64_encoded() -> None:
     segments = channel._build_outbound_segments(outbound, "private")
     assert segments[0]["type"] == "image"
     assert segments[0]["data"]["file"] == "base64://aW1hZ2U="
-    assert segments[1] == {"type": "text", "data": {"text": "caption"}}
+    assert segments[1] == {"type": "text", "data": {"text": "[TG][You]：caption"}}
 
 
 def test_startup_api_uses_short_lived_connection() -> None:
