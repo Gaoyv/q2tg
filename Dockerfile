@@ -13,8 +13,11 @@ RUN apt-get update \
 WORKDIR /app
 COPY pyproject.toml README.md /app/
 COPY efb_qq_napcat /app/efb_qq_napcat
+COPY patches/patch_etm_group_senders.py /tmp/patch_etm_group_senders.py
 
-RUN pip install --no-cache-dir "efb-telegram-master==2.3.1" .
+RUN pip install --no-cache-dir "efb-telegram-master==2.3.1" . \
+    && python /tmp/patch_etm_group_senders.py \
+    && rm /tmp/patch_etm_group_senders.py
 
 USER efb
 CMD ["ehforwarderbot", "--profile", "default"]

@@ -244,15 +244,36 @@ class QQMessengerChannel(SlaveChannel):
             return None
         return max(candidates, key=lambda item: item[0])[1]
 
+    def _telegram_sender_prefix(self, msg: Message) -> str:
+        author = getattr(msg, "author", None)
+        if author is None:
+            return "[TG][Telegram用户]："
+        name = getattr(author, "display_name", None) or getattr(author, "name", None)
+        if not name:
+            name = getattr(author, "uid", None) or "Telegram用户"
+        return f"[TG][{str(name).strip()}]："
+
     def _build_outbound_segments(self, msg: Message, chat_type: str) -> list[dict[str, Any]]:
         segments: list[dict[str, Any]] = []
+        prefix = self._telegram_sender_prefix(msg)
         if msg.target and msg.target.uid:
-            segments.append({"type": "reply", "data": {"id": self._onebot_message_id(str(msg.target.uid))}})
+            try:
+                reply_id = self._onebot_message_id(str(msg.target.uid))
+            except EFBOperationNotSupported:
+                reply_id = None
+            if reply_id:
+                segments.append({"type": "reply", "data": {"id": reply_id}})
+            elif msg.target.text:
+                quoted = str(msg.target.text).replace("\n", " ").strip()
+                segments.append({"type": "text", "data": {"text": f"[回复] {quoted}\n"}})
             if chat_type == "group" and msg.target.author and not isinstance(msg.target.author, SelfChatMember):
-                segments.append({"type": "at", "data": {"qq": str(msg.target.author.uid)}})
+                target_author_uid = str(msg.target.author.uid)
+                if target_author_uid.isdigit():
+                    segments.append({"type": "at", "data": {"qq": target_author_uid}})
 
         if msg.type in (MsgType.Text, MsgType.Link):
-            segments.append({"type": "text", "data": {"text": msg.text or ""}})
+            body = msg.text or ""
+            segments.append({"type": "text", "data": {"text": f"{prefix}{body}"}})
             return segments
 
         segment_type = {
@@ -271,8 +292,8 @@ class QQMessengerChannel(SlaveChannel):
         if msg.filename:
             data["name"] = msg.filename
         segments.append({"type": segment_type, "data": data})
-        if msg.text:
-            segments.append({"type": "text", "data": {"text": msg.text}})
+        caption = f"{prefix}{msg.text or ''}"
+        segments.append({"type": "text", "data": {"text": caption}})
         return segments
 
     def _read_message_file(self, msg: Message) -> bytes:
@@ -730,5 +751,7 @@ class QQMessengerChannel(SlaveChannel):
     def _onebot_message_id(uid: str) -> str:
         parts = uid.split("_")
         if len(parts) < 2 or not parts[1]:
+            raise EFBOperationNotSupported(f"Invalid QQ message ID: {uid}")
+        if not parts[0].isdigit() or not parts[1].isdigit():
             raise EFBOperationNotSupported(f"Invalid QQ message ID: {uid}")
         return parts[1]
