@@ -201,8 +201,29 @@ def test_qrcode_extra_reports_existing_login() -> None:
 
     channel = make_channel()
     channel.transport = ConnectedTransport()
-    channel._api = lambda action, params=None: {"nickname": "Alice", "user_id": 123}
+    channel._api = lambda action, params=None: (
+        {"online": True} if action == "get_status" else {"nickname": "Alice", "user_id": 123}
+    )
     assert channel.qq_login_qrcode() == "QQ 当前已登录：Alice（123），无需扫码。"
+
+
+def test_qrcode_extra_does_not_treat_empty_login_as_logged_in(tmp_path: Path) -> None:
+    qrcode = tmp_path / "qrcode.png"
+    qrcode.write_bytes(b"png")
+
+    class ConnectedTransport:
+        connected = True
+
+    channel = make_channel()
+    channel.config = NapCatConfig(qrcode_path=str(qrcode))
+    channel.transport = ConnectedTransport()
+    channel._api = lambda action, params=None: (
+        {"online": True} if action == "get_status" else {"nickname": "", "user_id": ""}
+    )
+    result = channel.qq_login_qrcode()
+    assert isinstance(result, TelegramExtraPhoto)
+    assert result.photo.read() == b"png"
+    result.photo.close()
 
 
 def test_qrcode_is_listed_as_an_extra_function() -> None:

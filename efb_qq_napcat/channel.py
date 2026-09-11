@@ -111,10 +111,15 @@ class QQMessengerChannel(SlaveChannel):
     def qq_login_qrcode(self, param: str = "") -> str | TelegramExtraPhoto:
         if self.transport.connected:
             try:
+                status = self._api("get_status") or {}
                 info = self._api("get_login_info") or {}
-                nickname = str(info.get("nickname") or "QQ")
-                user_id = str(info.get("user_id") or "未知号码")
-                return f"QQ 当前已登录：{nickname}（{user_id}），无需扫码。"
+                nickname = str(info.get("nickname") or "QQ").strip() or "QQ"
+                user_id = str(info.get("user_id") or "").strip()
+                # The OneBot WebSocket can remain connected after Tencent
+                # kicks the QQ session offline. A connected transport alone
+                # is not proof that the account is logged in.
+                if status.get("online") is True and user_id and user_id != "0":
+                    return f"QQ 当前已登录：{nickname}（{user_id}），无需扫码。"
             except EFBMessageError:
                 pass
 
